@@ -1,0 +1,82 @@
+1. cd Downloads
+2. abre o cmd
+3. pip install poetry
+4. poetry new projeto-ml	
+5.cd projeto-ml
+6.poetry add pandas scikit-learn streamlit matplotlib ou pip install pandas scikit-learn streamlit matplotlib
+7. No vscode instalar-> Python extension
+8. Ctrl + Shift + P
+9. Python: Select Interpreter
+10. "Create a virtual Environment"
+11. Adicionar a versao mais atual do python
+12. Criar o file App.py
+13. Seleciona o ambiente ".venv"
+14.criar file -> testes.ipynb
+15.Kernel -> python .venv
+16. +Code -> print(1) -> executar -> install ipykemel
+
+
+Códigos mo testes ipynb======================================================
+
+import pandas as pd
+
+df = pd.read_csv("pizzas.csv")
+
+df.plot(kind="scatter", x="diametro", y="preco");
+
+from sklearn import linear_model 
+
+modelo = linear_model.LinearRegression()
+
+x=df[["diametro"]]
+
+y=df[["preco"]]
+
+modelo.fit(x,y)
+
+print(modelo.predict([[110]])[0][0])
+
+============================================================================
+
+Ativar o terminal "bash"
+
+1. New Terminal
+2. Activate projeto-ml --> (nome_do_projeto)
+3. atreamlit run App.py
+===========================================================================CODIGOS
+
+*pizzas.csv*
+diametro,preco
+20,50
+22,55
+24,60
+26,65
+28,70
+30,75
+
+---------------------------------
+*App.py*
+  
+import streamlit as st
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+
+df = pd.read_csv("pizzas.csv")
+
+modelo = LinearRegression()
+
+x = df[["diametro"]]
+y = df[["preco"]]
+
+modelo.fit(x,y)
+
+st.title("olá!")
+st.divider()
+
+diametro = st.number_input("Digite o tamanho do diâmetro da pizza: ")
+
+if diametro: 
+    preco_previsto = modelo.predict([[diametro]])[0][0]
+    st.write(f"o valor da pizza com diâmetro de {diametro:.2f}cm é: R${preco_previsto:.2f}")
+  
+
