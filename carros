@@ -1,0 +1,360 @@
+veiculos.ipynb
+
+  # Importando as bibliotecas necessárias
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import mean_squared_error
+
+# Criando o DataFrame
+df = pd.read_csv('vendas_veiculos.csv')
+
+# Verificando se há valores ausentes no conjunto de dados
+print(df.isnull().sum())
+
+# Se houver valores ausentes, podemos preenchê-los ou removê-los
+df = df.dropna()  # Ou df.fillna(valor), dependendo de sua necessidade
+
+# Convertendo variáveis categóricas para numéricas
+le_modelo = LabelEncoder()
+le_cor = LabelEncoder()
+le_acessorio = LabelEncoder()
+
+df['Modelo'] = le_modelo.fit_transform(df['Modelo'])
+df['Cor'] = le_cor.fit_transform(df['Cor'])
+df['Acessorio'] = le_acessorio.fit_transform(df['Acessorio'])
+
+# Adicionando a coluna 'Preco_Futuro' para o treinamento
+df['Preco_Futuro'] = df['Preco'] * 1.05  # Supondo que o preço aumente 5% no próximo ano
+
+# Definindo as variáveis independentes (X) e dependentes (y)
+X = df[['Modelo', 'Cor', 'Acessorio', 'Preco_Futuro']]  # Agora estamos incluindo 'Preco_Futuro'
+y = df['Vendas']
+
+# Dividindo o conjunto de dados em treino e teste
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Criando e treinando o modelo de regressão linear
+modelo = LinearRegression()
+modelo.fit(X_train, y_train)
+
+# Fazendo previsões no conjunto de teste
+y_pred = modelo.predict(X_test)
+
+# Avaliando o modelo
+mse = mean_squared_error(y_test, y_pred)
+rmse = np.sqrt(mse)
+print(f"Erro Médio Quadrático (RMSE): {rmse:.2f}")
+
+# Prevendo as vendas com os preços futuros
+df['Vendas_Previstas'] = modelo.predict(df[['Modelo', 'Cor', 'Acessorio', 'Preco_Futuro']])
+
+# Exibindo as previsões de vendas para o próximo ano
+df[['Modelo', 'Cor', 'Acessorio', 'Preco_Futuro', 'Vendas_Previstas']].sort_values(by='Vendas_Previstas', ascending=False)
+
+
+  ---------------------App.py
+
+  from flask import Flask, jsonify
+
+app = Flask(__name__)
+
+# Dados de veículos
+veiculos = [
+    {
+        "modelo": "SUV",
+        "preco_base": 120000,
+        "cores": {
+            "Branco": 0,
+            "Preto": 1000,
+            "Vermelho": 2000,
+            "Azul": 1500
+        },
+        "acessorios": {
+            "Teto Solar": 5000,
+            "Bancos de Couro": 3000,
+            "Sistema Multimídia": 2500,
+            "Rodas Esportivas": 4000
+        },
+        "imagem": "suv_branco.jpg"
+    },
+    {
+        "modelo": "Sedan",
+        "preco_base": 95000,
+        "cores": {
+            "Branco": 0,
+            "Preto": 1000,
+            "Vermelho": 1500,
+            "Azul": 1000
+        },
+        "acessorios": {
+            "Teto Solar": 4000,
+            "Bancos de Couro": 2500,
+            "Sistema Multimídia": 2000,
+            "Rodas Esportivas": 3500
+        },
+        "imagem": "sedan_branco.jpg"
+    }
+]
+
+# Endpoint para retornar dados do veículo
+@app.route("/api/veiculos")
+def get_veiculos():
+    return jsonify(veiculos)
+
+@app.route("/")
+def index():
+    # Conteúdo HTML inline
+    return """
+    <html lang="pt-br">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Personalização de Veículos</title>
+            <style>
+                body { 
+                    font-family: Arial, sans-serif;
+                    margin: 0;
+                    padding: 0;
+                }
+
+                header, footer {
+                    background-color: #003366;
+                    color: white;
+                    padding: 20px;
+                    text-align: center;
+                }
+
+                #veiculo-img {
+                    width: 400px;
+                    height: auto;
+                    margin: 0 auto;
+                    display: block;
+                }
+
+                .container {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    flex-direction: column;
+                    margin: 20px 0;
+                }
+
+                .options {
+                    width: 80%;
+                    max-width: 600px;
+                    text-align: center;
+                }
+
+                select {
+                    margin: 10px;
+                    padding: 10px;
+                    font-size: 14px;
+                    width: 100%;
+                    max-width: 300px;
+                    cursor: pointer;
+                }
+
+                #preco {
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #003366;
+                }
+
+                footer {
+                    position: fixed;
+                    bottom: 0;
+                    width: 100%;
+                }
+            </style>
+        </head>
+        <body>
+
+        <header>
+            <h1>Personalize Seu Veículo</h1>
+        </header>
+
+        <div class="container">
+            <h2 id="preco">Valor Total: R$ 0,00</h2>
+            <img id="veiculo-img" src="suv_branco.jpg" alt="Imagem do Veículo">
+
+            <div class="options">
+                <div>
+                    <label for="modelo">Modelo:</label>
+                    <select id="modelo">
+                        <option value="SUV">SUV</option>
+                        <option value="Sedan">Sedan</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="cor">Cor:</label>
+                    <select id="cor">
+                        <option value="Branco">Branco</option>
+                        <option value="Preto">Preto</option>
+                        <option value="Vermelho">Vermelho</option>
+                        <option value="Azul">Azul</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="acessorio">Acessórios:</label>
+                    <select id="acessorio">
+                        <option value="Teto Solar">Teto Solar</option>
+                        <option value="Bancos de Couro">Bancos de Couro</option>
+                        <option value="Sistema Multimídia">Sistema Multimídia</option>
+                        <option value="Rodas Esportivas">Rodas Esportivas</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2024 Personalização de Veículos</p>
+        </footer>
+
+        <script>
+            fetch('/api/veiculos')
+                .then(response => response.json())
+                .then(data => {
+                    let veiculos = data;
+                    let modeloSelect = document.getElementById("modelo");
+                    let corSelect = document.getElementById("cor");
+                    let acessorioSelect = document.getElementById("acessorio");
+                    let precoDisplay = document.getElementById("preco");
+                    let veiculoImg = document.getElementById("veiculo-img");
+
+                    function calcularPreco() {
+                        let modeloSelecionado = modeloSelect.value;
+                        let corSelecionada = corSelect.value;
+                        let acessorioSelecionado = acessorioSelect.value;
+
+                        let veiculo = veiculos.find(v => v.modelo === modeloSelecionado);
+                        let precoBase = veiculo.preco_base;
+                        let precoCor = veiculo.cores[corSelecionada];
+                        let precoAcessorio = veiculo.acessorios[acessorioSelecionado];
+
+                        let precoTotal = precoBase + precoCor + precoAcessorio;
+                        precoDisplay.textContent = "Valor Total: R$ " + precoTotal.toFixed(2);
+                        veiculoImg.src = veiculo.imagem;
+                    }
+
+                    modeloSelect.addEventListener("change", calcularPreco);
+                    corSelect.addEventListener("change", calcularPreco);
+                    acessorioSelect.addEventListener("change", calcularPreco);
+
+                    calcularPreco();
+                });
+        </script>
+
+        </body>
+    </html>
+    """
+    
+if __name__ == "__main__":
+    app.run(debug=True)
+-----------------------------------------------vendas_veiculos.csv
+
+  Modelo,Cor,Acessorio,Preco,Vendas
+SUV,Branco,Teto Solar,95000,4
+Sedan,Preto,Rodas Esportivas,80000,2
+Picape,Vermelho,Bancos de Couro,105000,6
+Crossover,Azul,Sistema Multimídia,115000,3
+SUV,Prata,Câmera de Ré,100000,5
+Sedan,Branco,Rodas Esportivas,85000,3
+Picape,Preto,Teto Solar,110000,7
+Crossover,Verde,Sistema Multimídia,90000,1
+SUV,Azul,Bancos de Couro,98000,4
+Hatch,Prata,Câmera de Ré,67000,2
+Sedan,Amarelo,Teto Solar,95000,3
+Picape,Preto,Bancos de Couro,100000,5
+SUV,Preto,Sistema Multimídia,97000,4
+Crossover,Azul,Teto Solar,105000,2
+Sedan,Verde,Rodas Esportivas,92000,6
+Picape,Vermelho,Sistema Multimídia,108000,7
+SUV,Branco,Câmera de Ré,99000,3
+Hatch,Vermelho,Bancos de Couro,67000,4
+Sedan,Azul,Teto Solar,95000,2
+Picape,Prata,Rodas Esportivas,115000,6
+Crossover,Preto,Câmera de Ré,105000,1
+SUV,Verde,Sistema Multimídia,110000,5
+Sedan,Prata,Bancos de Couro,88000,3
+Picape,Azul,Teto Solar,102000,4
+Crossover,Vermelho,Rodas Esportivas,120000,5
+SUV,Preto,Sistema Multimídia,100000,4
+Sedan,Branco,Câmera de Ré,86000,2
+Picape,Azul,Bancos de Couro,112000,6
+Crossover,Verde,Teto Solar,97000,4
+SUV,Prata,Rodas Esportivas,105000,3
+Sedan,Preto,Sistema Multimídia,93000,5
+Picape,Vermelho,Câmera de Ré,109000,2
+Crossover,Azul,Bancos de Couro,100000,3
+SUV,Amarelo,Teto Solar,98000,5
+Sedan,Verde,Rodas Esportivas,92000,4
+Picape,Preto,Teto Solar,110000,7
+Crossover,Prata,Bancos de Couro,104000,3
+SUV,Branco,Sistema Multimídia,105000,5
+Sedan,Azul,Câmera de Ré,90000,2
+Picape,Prata,Rodas Esportivas,118000,6
+Crossover,Verde,Sistema Multimídia,95000,4
+SUV,Preto,Bancos de Couro,100000,3
+Sedan,Branco,Teto Solar,94000,4
+Picape,Amarelo,Câmera de Ré,107000,5
+Crossover,Azul,Rodas Esportivas,115000,4
+SUV,Prata,Sistema Multimídia,99000,2
+Sedan,Preto,Bancos de Couro,87000,6
+Picape,Vermelho,Teto Solar,110000,5
+Crossover,Verde,Câmera de Ré,94000,2
+SUV,Azul,Rodas Esportivas,103000,3
+Sedan,Amarelo,Sistema Multimídia,90000,4
+Picape,Preto,Bancos de Couro,108000,7
+Crossover,Vermelho,Teto Solar,111000,4
+SUV,Branco,Câmera de Ré,97000,6
+Sedan,Prata,Rodas Esportivas,96000,3
+Picape,Azul,Sistema Multimídia,105000,5
+Crossover,Preto,Bancos de Couro,100000,3
+SUV,Verde,Teto Solar,98000,2
+Sedan,Azul,Rodas Esportivas,95000,6
+Picape,Vermelho,Câmera de Ré,113000,4
+Crossover,Prata,Sistema Multimídia,94000,2
+SUV,Preto,Bancos de Couro,107000,5
+Sedan,Branco,Teto Solar,90000,2
+Picape,Azul,Rodas Esportivas,109000,6
+Crossover,Verde,Câmera de Ré,100000,4
+SUV,Amarelo,Sistema Multimídia,110000,3
+Sedan,Preto,Bancos de Couro,95000,5
+Picape,Prata,Teto Solar,113000,4
+Crossover,Azul,Rodas Esportivas,104000,3
+SUV,Verde,Bancos de Couro,105000,4
+Sedan,Amarelo,Sistema Multimídia,92000,4
+Picape,Vermelho,Câmera de Ré,102000,2
+Crossover,Branco,Teto Solar,115000,6
+SUV,Preto,Rodas Esportivas,108000,3
+Sedan,Branco,Bancos de Couro,88000,4
+Picape,Azul,Sistema Multimídia,106000,5
+Crossover,Verde,Teto Solar,110000,6
+SUV,Prata,Bancos de Couro,103000,4
+Sedan,Azul,Rodas Esportivas,96000,2
+Picape,Preto,Câmera de Ré,107000,3
+Crossover,Prata,Sistema Multimídia,98000,2
+SUV,Branco,Teto Solar,95000,5
+Sedan,Verde,Rodas Esportivas,92000,3
+Picape,Preto,Bancos de Couro,112000,6
+Crossover,Amarelo,Câmera de Ré,95000,4
+SUV,Azul,Sistema Multimídia,100000,7
+Sedan,Preto,Rodas Esportivas,87000,5
+Picape,Vermelho,Teto Solar,105000,2
+Crossover,Verde,Bancos de Couro,110000,3
+SUV,Branco,Câmera de Ré,99000,4
+Sedan,Prata,Rodas Esportivas,100000,6
+Picape,Amarelo,Sistema Multimídia,113000,2
+Crossover,Preto,Teto Solar,102000,5
+SUV,Azul,Bancos de Couro,104000,3
+Sedan,Branco,Sistema Multimídia,92000,2
+Picape,Prata,Câmera de Ré,111000,4
+Crossover,Verde,Teto Solar,105000,6
+SUV,Preto,Rodas Esportivas,102000,3
+
+
