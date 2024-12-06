@@ -1,0 +1,96 @@
+
+# Importar bibliotecas necessárias
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Configurar estilo do Seaborn
+sns.set(style="whitegrid")
+
+# Carregar os dados
+file_path = "pizzas.csv"  
+try:
+    vendas = pd.read_csv(file_path)
+    print("Dados carregados com sucesso!")
+except FileNotFoundError:
+    print(f"Arquivo não encontrado: {file_path}")
+
+
+print(vendas.head())
+
+# Limpeza de dados
+# Verificar valores ausentes
+print("\nValores ausentes por coluna:")
+print(vendas.isnull().sum())
+
+# Preencher ou remover valores ausentes (se necessário)
+vendas.dropna(inplace=True)  # Exemplo: remover linhas com valores ausentes
+
+# Conversão de tipos (se necessário)
+vendas['Data'] = pd.to_datetime(vendas['Data'])  # Converter a coluna 'Data' para formato de data
+
+# Análise descritiva
+print("\nEstatísticas descritivas:")
+print(vendas.describe())
+
+# Total de vendas por modelo
+vendas_por_modelo = vendas.groupby('Modelo')['Quantidade'].sum().sort_values(ascending=False)
+print("\nTotal de vendas por modelo:")
+print(vendas_por_modelo)
+
+# Receita total por modelo
+vendas['Receita'] = vendas['Preço'] * vendas['Quantidade']
+receita_por_modelo = vendas.groupby('Modelo')['Receita'].sum().sort_values(ascending=False)
+print("\nReceita total por modelo:")
+print(receita_por_modelo)
+
+# Gráficos
+# Vendas por modelo
+plt.figure(figsize=(10, 6))
+vendas_por_modelo.plot(kind='bar', color='skyblue')
+plt.title("Vendas por Modelo")
+plt.xlabel("Modelo")
+plt.ylabel("Quantidade Vendida")
+plt.xticks(rotation=45)
+plt.show()
+
+# Receita total por modelo
+plt.figure(figsize=(10, 6))
+receita_por_modelo.plot(kind='bar', color='orange')
+plt.title("Receita Total por Modelo")
+plt.xlabel("Modelo")
+plt.ylabel("Receita (R$)")
+plt.xticks(rotation=45)
+plt.show()
+
+# Vendas por região
+vendas_por_regiao = vendas.groupby('Região')['Quantidade'].sum()
+plt.figure(figsize=(8, 5))
+vendas_por_regiao.plot(kind='pie', autopct='%1.1f%%', startangle=140, colors=sns.color_palette("pastel"))
+plt.title("Distribuição de Vendas por Região")
+plt.ylabel("")
+plt.show()
+
+# Tendência de vendas ao longo do tempo
+plt.figure(figsize=(10, 6))
+vendas.groupby('Data')['Quantidade'].sum().plot(color='green')
+plt.title("Tendência de Vendas ao Longo do Tempo")
+plt.xlabel("Data")
+plt.ylabel("Quantidade Vendida")
+plt.grid(True)
+
+
+----------------------------------------BASE DE DADOS
+
+Data,Modelo,Preço,Quantidade,Região
+2024-01-15,SUV,85000.50,3,Norte
+2024-03-10,Sedan,45000.00,2,Sul
+2023-12-22,Pickup,120000.75,1,Leste
+2024-06-05,Hatchback,38000.90,5,Oeste
+2024-07-18,Conversível,135000.00,2,Centro
+2023-11-30,SUV,95000.20,4,Norte
+2024-02-14,Sedan,47000.00,3,Sul
+2024-08-21,Pickup,110000.30,1,Leste
+2024-04-25,Hatchback,40000.50,6,Oeste
+2024-05-10,Conversível,140000.00,2,Centro
+plt.show()
