@@ -1,0 +1,101 @@
+pip install pdfplumber pytesseract pillow pandas openpyxl
+
+--------------------------------------------------------
+
+Instalar o "Tesseract"
+OCR:https://stackoverflow.com/questions/46140485/tesseract-installation-in-windows
+Download tesseract exe from https://github.com/UB-Mannheim/tesseract/wiki.
+
+escolha o diretório padrão:
+C:\Program Files\Tesseract-OCR.
+
+Vá em Configurações do Sistema → Variáveis de Ambiente.
+Em Variáveis do Sistema, edite a variável Path e adicione o caminho
+
+C:\Program Files\Tesseract-OCR
+
+teste: tesseract --version
+
+-------------------------------------------------------
+
+Instalar o ".zip"
+https://github.com/tesseract-ocr/tesseract/tags
+
+---------------------------------------------------------
+
+O arquivo por.traineddata (extraido do .zip) deve ser colocado no diretório tessdata do Tesseract.
+
+teste: tesseract --list-langs
+
+------------------------------------------------------
+
+import os
+import pdfplumber
+import pytesseract
+from PIL import Image
+import pandas as pd
+import re
+
+# Configurar o caminho do Tesseract OCR (para Windows)
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
+# Função para extrair dados usando OCR
+def extrair_dados_ocr(imagem):
+    texto = pytesseract.image_to_string(imagem, lang="por")  # OCR em Português
+    print("Texto extraído:", texto)  # Mostra o texto extraído para debug
+    
+    # Limpeza adicional para remover quebras de linha e texto extra indesejado
+    texto = re.sub(r"\n", " ", texto)  # Substitui quebras de linha por espaços
+    texto = re.sub(r"\s+", " ", texto)  # Substitui múltiplos espaços por um único espaço
+
+    # Regex aprimorada para capturar o nome
+    nome = re.search(r"nome[:\-]?\s*([A-Za-zÀ-ÿ\s]+)", texto, re.IGNORECASE)
+    if nome:
+        nome_extraido = nome.group(1).strip()
+        # Garantir que "Idade" não esteja junto ao nome
+        nome_extraido = nome_extraido.split("Idade")[0].strip()
+    else:
+        nome_extraido = "N/A"
+
+    # Regex para capturar idade
+    idade = re.search(r"Idade:\s*(\d+)", texto)
+    idade_extraida = idade.group(1) if idade else "N/A"
+    
+    return {
+        "Nome": nome_extraido,
+        "Idade": idade_extraida
+    }
+
+# Caminho da pasta onde estão os PDFs
+caminho_pasta = "C:/Users/marjo/Downloads/pdftester"
+
+# Lista para armazenar os dados extraídos
+dados = []
+
+# Percorrendo todos os arquivos PDF na pasta
+for arquivo in os.listdir(caminho_pasta):
+    if arquivo.endswith(".pdf"):  # Verifica se é um arquivo PDF
+        caminho_pdf = os.path.join(caminho_pasta, arquivo)
+        print(f"Lendo arquivo: {caminho_pdf}")
+        try:
+            with pdfplumber.open(caminho_pdf) as pdf:
+                for page_number, page in enumerate(pdf.pages):
+                    # Convertendo a página inteira em imagem
+                    imagem_pil = page.to_image(resolution=300).original
+                    dados_extraidos = extrair_dados_ocr(imagem_pil)
+                    if dados_extraidos["Nome"] != "N/A" or dados_extraidos["Idade"] != "N/A":
+                        dados.append(dados_extraidos)
+        except Exception as e:
+            print(f"Erro ao processar o arquivo {arquivo}: {e}")
+
+# Salvar os dados extraídos em um arquivo Excel
+if dados:
+    df = pd.DataFrame(dados)
+    df.to_excel("resultado_final_ocr.xlsx", index=False)
+    print("Dados salvos em 'resultado_final_ocr.xlsx'.")
+else:
+    print("Nenhum dado foi encontrado nas imagens dos PDFs.")
+
+  
+
+  
