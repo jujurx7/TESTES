@@ -1,0 +1,53 @@
+pip install pdfplumber
+pip install pandas
+pip install openpyxl
+
+--------------------------------
+
+Criar uma pasta chamada "pdftester" para armazenar os arquivos .pdf
+Criar outra pasta chamada "testespython" para o script
+Crial um exel chamado "resultado_final.xlsx"
+
+-----------------------------------
+
+import os
+import pdfplumber
+import pandas as pd
+import re
+
+# Função para extrair nome e idade de um texto
+def extrair_dados(texto):
+    nome = re.search(r"Nome:\s*(\w+\s\w+)", texto)  # Exemplo: Nome: João Silva
+    idade = re.search(r"Idade:\s*(\d+)", texto)    # Exemplo: Idade: 25
+    return {"Nome": nome.group(1) if nome else "N/A",
+            "Idade": idade.group(1) if idade else "N/A"}
+
+# Caminho da pasta onde estão os PDFs
+caminho_pasta = "C:/Users/marjo/Downloads/pdftester"  # Altere para o caminho correto
+
+# Lista para armazenar os dados de todos os PDFs
+dados = []
+
+# Percorrendo todos os arquivos PDF na pasta
+for arquivo in os.listdir(caminho_pasta):
+    if arquivo.endswith(".pdf"):  # Verifica se é um arquivo PDF
+        caminho_pdf = os.path.join(caminho_pasta, arquivo)
+        print(f"Lendo arquivo: {caminho_pdf}")
+        try:
+            # Lendo o PDF
+            with pdfplumber.open(caminho_pdf) as pdf:
+                for page in pdf.pages:
+                    texto = page.extract_text()  # Extraindo texto da página
+                    if texto:  # Verifica se o texto não está vazio
+                        dados.append(extrair_dados(texto))
+        except Exception as e:
+            print(f"Erro ao ler o arquivo {arquivo}: {e}")
+
+# Salvando os dados em um único Excel
+if dados:
+    df = pd.DataFrame(dados)
+    df.to_excel("resultado_final.xlsx", index=False)
+    print("Dados salvos em 'resultado_final.xlsx'.")
+else:
+    print("Nenhum dado foi encontrado nos arquivos PDF.")
+
